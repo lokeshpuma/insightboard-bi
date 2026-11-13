@@ -1,0 +1,23 @@
+order_date,region,product,quantity,unit_price,revenue,sales_channel
+2026-01-05,North America,Enterprise Cloud,5,1200.00,6000.00,Direct Sales
+2026-01-08,Europe,Pro Analytics,12,350.00,4200.00,Partner
+2026-01-12,Asia Pacific,Team Starter,25,99.00,2475.00,Online
+2026-01-15,North America,Pro Analytics,8,350.00,2800.00,Online
+2026-01-19,Latin America,Enterprise Cloud,3,1200.00,3600.00,Direct Sales
+2026-01-22,Europe,Team Starter,40,99.00,3960.00,Online
+2026-01-28,North America,Enterprise Cloud,10,1200.00,12000.00,Direct Sales
+2026-02-02,Europe,Pro Analytics,15,350.00,5250.00,Direct Sales
+2026-02-06,Asia Pacific,Pro Analytics,9,350.00,3150.00,Partner
+2026-02-10,North America,Team Starter,30,99.00,2970.00,Online
+2026-02-14,Europe,Enterprise Cloud,6,1200.00,7200.00,Direct Sales
+2026-02-18,Latin America,Pro Analytics,7,350.00,2450.00,Partner
+2026-02-23,North America,Enterprise Cloud,8,1200.00,9600.00,Direct Sales
+2026-02-27,Asia Pacific,Enterprise Cloud,4,1200.00,4800.00,Direct Sales
+2026-03-03,Europe,Team Starter,50,99.00,4950.00,Online
+2026-03-07,North America,Pro Analytics,14,350.00,4900.00,Online
+2026-03-12,Latin America,Team Starter,20,99.00,1980.00,Partner
+2026-03-16,Asia Pacific,Pro Analytics,11,350.00,3850.00,Online
+2026-03-20,Europe,Enterprise Cloud,7,1200.00,8400.00,Direct Sales
+2026-03-25,North America,Enterprise Cloud,12,1200.00,14400.00,Direct Sales
+2026-03-29,Europe,Pro Analytics,10,350.00,3500.00,Partner
+

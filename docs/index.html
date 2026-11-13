@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsightBoard — Business Intelligence & Analytics</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="assets/app.css">
+    <script src="assets/chart.min.js"></script>
+    <style>
+        .demo-banner {
+            background: linear-gradient(90deg, #4338ca 0%, #6366f1 100%);
+            color: #ffffff;
+            padding: 0.5rem 1.5rem;
+            font-size: 0.8125rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 500;
+        }
+        .demo-banner a {
+            color: #ffffff;
+            text-decoration: underline;
+            font-weight: 700;
+        }
+        .auth-overlay {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+        }
+        .auth-card {
+            width: 100%;
+            max-width: 440px;
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: 2.25rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .credential-box {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.8125rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- GitHub Pages Live Demo Showcase Notification Banner -->
+<div class="demo-banner">
+    <div>
+        🚀 <strong>InsightBoard Interactive Showcase:</strong> Exploring full platform functionality in-browser. Source code & full backend on <a href="https://github.com/lokeshpuma/insightboard-bi.git" target="_blank">GitHub</a>.
+    </div>
+    <div>
+        <button class="btn btn-outline btn-sm" style="color: white; border-color: rgba(255,255,255,0.4); padding: 0.2rem 0.6rem; font-size: 0.75rem;" onclick="logoutDemo()">Sign Out</button>
+    </div>
+</div>
+
+<!-- Modal / Auth Screen for GitHub Pages -->
+<div id="auth-screen" class="auth-overlay">
+    <div class="auth-card">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <img src="assets/favicon.svg" alt="InsightBoard" style="width: 36px; height: 36px; border-radius: 8px;">
+            <span style="font-size: 1.35rem; font-weight: 700; color: #0f172a; letter-spacing: -0.025em;">InsightBoard</span>
+        </div>
+
+        <h1 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.25rem; text-align: center;">Sign In to Demo Workspace</h1>
+        <p style="font-size: 0.8125rem; color: var(--text-muted); text-align: center; margin-bottom: 1.25rem;">Interactive GitHub Pages client deployment</p>
+
+        <div class="credential-box">
+            <div style="font-weight: 600; color: var(--text-main); margin-bottom: 0.35rem;">Demo Credentials:</div>
+            <div><strong>Email:</strong> <code>demo@insightboard.local</code></div>
+            <div><strong>Password:</strong> <code>password</code></div>
+            <div style="margin-top: 0.35rem; color: var(--text-muted); font-size: 0.75rem;">Role: <strong>Workspace Owner</strong> (Acme Analytics)</div>
+        </div>
+
+        <form onsubmit="event.preventDefault(); loginDemo();">
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="demo-email" class="form-control" value="demo@insightboard.local" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="demo-password" class="form-control" value="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                Sign In with Demo Account →
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Main Application Shell -->
+<div class="app-layout" id="app-shell" style="display: none;">
+    <!-- Sidebar -->
+    <aside class="app-sidebar">
+        <div class="app-sidebar-brand">
+            <img src="assets/favicon.svg" alt="InsightBoard" style="width: 28px; height: 28px; border-radius: 6px;">
+            <span>InsightBoard</span>
+        </div>
+
+        <nav class="app-sidebar-nav">
+            <div class="nav-section-title">Analytics</div>
+            <a href="javascript:void(0)" class="nav-item active" onclick="switchTab('overview', this)">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18M9 9l3 3 5-5 3 3"/></svg>
+                Overview
+            </a>
+            <a href="javascript:void(0)" class="nav-item" onclick="switchTab('datasets', this)">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7z"/><path d="M9 12h6M9 16h4"/></svg>
+                Datasets
+            </a>
+            <a href="javascript:void(0)" class="nav-item" onclick="switchTab('explorer', this)">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+                Data Explorer
+            </a>
+            <a href="javascript:void(0)" class="nav-item" onclick="switchTab('dashboards', this)">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+                Dashboards
+            </a>
+            <a href="javascript:void(0)" class="nav-item" onclick="switchTab('reports', this)">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Reports & Export
+            </a>
+
+            <div class="nav-section-title">Administration</div>
+            <a href="javascript:void(0)" class="nav-item" onclick="switchTab('settings', this)">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Settings & Members
+            </a>
+        </nav>
+
+        <div class="app-sidebar-footer">
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">Signed in as</div>
+            <div style="font-size: 0.875rem; font-weight: 600; color: #fff;">Demo Analyst</div>
+            <div style="font-size: 0.75rem; color: #cbd5e1;">Role: <span class="badge badge-info">Owner</span></div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="app-main">
+        <header class="app-header">
+            <div class="header-left">
+                <div class="workspace-badge">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18M3 7v1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7m0 1a3 3 0 0 0 6 0V7"/></svg>
+                    <span>Acme Analytics (Q1)</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-outline btn-sm" onclick="logoutDemo()">Sign Out</button>
+            </div>
+        </header>
+
+        <main class="app-content">
+
+            <!-- TAB 1: OVERVIEW -->
+            <div id="tab-overview" class="tab-content active">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Workspace Overview</h1>
+                        <p class="page-subtitle">Real-time metrics, active datasets, and interactive analytics</p>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button class="btn btn-outline" onclick="openModal('upload-csv-modal')">+ Upload CSV</button>
+                        <button class="btn btn-primary" onclick="switchTab('dashboards')">View Dashboards →</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-4" style="margin-bottom: 2rem;">
+                    <div class="kpi-card">
+                        <span class="kpi-title">Datasets</span>
+                        <div class="kpi-value" id="stat-datasets">3</div>
+                        <span class="kpi-subtext">Active CSV files</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Total Records</span>
+                        <div class="kpi-value">50</div>
+                        <span class="kpi-subtext">Ingested rows</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Dashboards</span>
+                        <div class="kpi-value">1</div>
+                        <span class="kpi-subtext">Configured dashboards</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Reports</span>
+                        <div class="kpi-value">1</div>
+                        <span class="kpi-subtext">Ready for export</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12">
+                    <div class="col-span-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Active Workspace Datasets</h2>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Status</th>
+                                            <th>Records</th>
+                                            <th>Columns</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Q1 Sales & Revenue</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">sales_sample.csv</span></td>
+                                            <td><span class="badge badge-success">Ready</span></td>
+                                            <td>21</td>
+                                            <td>7</td>
+                                            <td><button class="btn btn-outline btn-sm" onclick="switchTab('explorer')">Explore</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Website Traffic & Marketing</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">website_traffic_sample.csv</span></td>
+                                            <td><span class="badge badge-success">Ready</span></td>
+                                            <td>15</td>
+                                            <td>6</td>
+                                            <td><button class="btn btn-outline btn-sm" onclick="switchTab('explorer')">Explore</button></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Customer Support Tickets</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">support_tickets_sample.csv</span></td>
+                                            <td><span class="badge badge-success">Ready</span></td>
+                                            <td>14</td>
+                                            <td>5</td>
+                                            <td><button class="btn btn-outline btn-sm" onclick="switchTab('explorer')">Explore</button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-span-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Recent Activity</h2>
+                            </div>
+                            <div class="card-body" style="font-size: 0.8125rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                                    <strong>Dataset Seeded:</strong> Q1 Sales & Revenue
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Just now by System</div>
+                                </div>
+                                <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                                    <strong>Dashboard Created:</strong> Sales Analytics
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Just now by Demo Analyst</div>
+                                </div>
+                                <div>
+                                    <strong>User Login:</strong> demo@insightboard.local
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Active session</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: DATASETS -->
+            <div id="tab-datasets" class="tab-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Dataset Library</h1>
+                        <p class="page-subtitle">CSV files uploaded and processed for Acme Analytics</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openModal('upload-csv-modal')">+ Upload CSV</button>
+                </div>
+
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Dataset</th>
+                                    <th>Status</th>
+                                    <th>Rows</th>
+                                    <th>Columns</th>
+                                    <th>Delimiter</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Q1 Sales & Revenue</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">sales_sample.csv</span></td>
+                                    <td><span class="badge badge-success">Ready</span></td>
+                                    <td>21</td>
+                                    <td>7</td>
+                                    <td><code>,</code></td>
+                                    <td>
+                                        <button class="btn btn-outline btn-sm" onclick="switchTab('explorer')">Explore Rows</button>
+                                        <button class="btn btn-secondary btn-sm" onclick="switchTab('dashboards')">Visualize</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Website Traffic & Marketing</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">website_traffic_sample.csv</span></td>
+                                    <td><span class="badge badge-success">Ready</span></td>
+                                    <td>15</td>
+                                    <td>6</td>
+                                    <td><code>,</code></td>
+                                    <td>
+                                        <button class="btn btn-outline btn-sm" onclick="switchTab('explorer')">Explore Rows</button>
+                                        <button class="btn btn-secondary btn-sm" onclick="switchTab('dashboards')">Visualize</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Customer Support Tickets</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">support_tickets_sample.csv</span></td>
+                                    <td><span class="badge badge-success">Ready</span></td>
+                                    <td>14</td>
+                                    <td>5</td>
+                                    <td><code>,</code></td>
+                                    <td>
+                                        <button class="btn btn-outline btn-sm" onclick="switchTab('explorer')">Explore Rows</button>
+                                        <button class="btn btn-secondary btn-sm" onclick="switchTab('dashboards')">Visualize</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: DATA EXPLORER -->
+            <div id="tab-explorer" class="tab-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Data Explorer — Q1 Sales & Revenue</h1>
+                        <p class="page-subtitle">Filter, sort, and inspect imported tabular records</p>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-body" style="padding: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <input type="text" id="explorer-search" class="form-control" placeholder="Search region, product, or sales channel..." style="max-width: 320px;" oninput="filterExplorerTable()">
+                        <select id="explorer-region-filter" class="form-select" style="max-width: 200px;" onchange="filterExplorerTable()">
+                            <option value="">All Regions</option>
+                            <option value="North America">North America</option>
+                            <option value="Europe">Europe</option>
+                            <option value="Asia Pacific">Asia Pacific</option>
+                            <option value="Latin America">Latin America</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table" id="explorer-table">
+                            <thead>
+                                <tr>
+                                    <th>Order Date</th>
+                                    <th>Region</th>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Revenue ($)</th>
+                                    <th>Sales Channel</th>
+                                </tr>
+                            </thead>
+                            <tbody id="explorer-tbody">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: DASHBOARDS -->
+            <div id="tab-dashboards" class="tab-content">
+                <div class="page-header">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+                            <h1 class="page-title">Sales Performance & Analytics</h1>
+                            <span class="badge badge-secondary">Workspace</span>
+                        </div>
+                        <p class="page-subtitle">Interactive analytical dashboard connected to Q1 Sales dataset</p>
+                    </div>
+                </div>
+
+                <!-- Dashboard Interactive Filter Bar -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-body" style="padding: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <span style="font-weight: 600; font-size: 0.875rem;">Dashboard Territory Filter:</span>
+                        <select id="dashboard-region-filter" class="form-select" style="max-width: 240px;" onchange="updateDashboardCharts()">
+                            <option value="All">All Territories (Global)</option>
+                            <option value="North America">North America</option>
+                            <option value="Europe">Europe</option>
+                            <option value="Asia Pacific">Asia Pacific</option>
+                            <option value="Latin America">Latin America</option>
+                        </select>
+                        <span id="active-filter-badge" class="badge badge-info" style="display: none;">Filtered</span>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-3" style="margin-bottom: 1.5rem;">
+                    <div class="kpi-card">
+                        <span class="kpi-title">Total Revenue</span>
+                        <div class="kpi-value" id="kpi-total-revenue">$110,965</div>
+                        <span class="kpi-subtext">Aggregated sales across region</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Total Units Sold</span>
+                        <div class="kpi-value" id="kpi-total-units">299</div>
+                        <span class="kpi-subtext">Product quantities</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Average Order Value</span>
+                        <div class="kpi-value" id="kpi-aov">$5,284</div>
+                        <span class="kpi-subtext">Per transaction</span>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid grid-cols-12" style="margin-bottom: 1.5rem;">
+                    <div class="col-span-6">
+                        <div class="card" style="height: 100%;">
+                            <div class="card-header">
+                                <h3 class="card-title">Revenue by Territory Region ($)</h3>
+                            </div>
+                            <div class="card-body" style="height: 280px; position: relative;">
+                                <canvas id="chart-bar-region"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-span-6">
+                        <div class="card" style="height: 100%;">
+                            <div class="card-header">
+                                <h3 class="card-title">Product Revenue Distribution</h3>
+                            </div>
+                            <div class="card-body" style="height: 280px; position: relative;">
+                                <canvas id="chart-doughnut-product"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-12">
+                    <div class="col-span-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Monthly Revenue Trend</h3>
+                            </div>
+                            <div class="card-body" style="height: 280px; position: relative;">
+                                <canvas id="chart-line-trend"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: REPORTS & EXPORT -->
+            <div id="tab-reports" class="tab-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Quarterly Regional Sales Breakdown</h1>
+                        <p class="page-subtitle">Formula-safe CSV export generation and data summary</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="exportDataToCsv()">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            Export Clean CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert alert-success" style="margin-bottom: 1.5rem;">
+                    🛡️ <strong>Spreadsheet Formula Injection Neutralization Active:</strong> Text cells containing `=, +, -, @` are safely neutralized to prevent spreadsheet macro execution.
+                </div>
+
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Territory Region</th>
+                                    <th>Total Transactions</th>
+                                    <th>Total Units Sold</th>
+                                    <th>Total Revenue ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>North America</strong></td>
+                                    <td>7</td>
+                                    <td>91</td>
+                                    <td style="font-weight: 700;">$54,300.00</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Europe</strong></td>
+                                    <td>7</td>
+                                    <td>144</td>
+                                    <td style="font-weight: 700;">$37,460.00</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Asia Pacific</strong></td>
+                                    <td>4</td>
+                                    <td>49</td>
+                                    <td style="font-weight: 700;">$14,275.00</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Latin America</strong></td>
+                                    <td>3</td>
+                                    <td>15</td>
+                                    <td style="font-weight: 700;">$4,930.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: SETTINGS -->
+            <div id="tab-settings" class="tab-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Acme Analytics Settings</h1>
+                        <p class="page-subtitle">Manage workspace members and permissions</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Workspace Members (3)</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Member Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Demo Owner</strong></td>
+                                    <td>demo@insightboard.local</td>
+                                    <td><span class="badge badge-primary" style="background: var(--primary-light); color: var(--primary);">Owner</span></td>
+                                    <td><span class="badge badge-success">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Workspace Admin</strong></td>
+                                    <td>admin@insightboard.local</td>
+                                    <td><span class="badge badge-info">Admin</span></td>
+                                    <td><span class="badge badge-success">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Dashboard Viewer</strong></td>
+                                    <td>viewer@insightboard.local</td>
+                                    <td><span class="badge badge-secondary">Viewer</span></td>
+                                    <td><span class="badge badge-success">Active</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<!-- Modal: Upload CSV (In-Browser Parser) -->
+<div id="upload-csv-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="card-title">Upload & Parse CSV Dataset</h3>
+            <button class="btn btn-outline btn-sm" onclick="closeModal('upload-csv-modal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Select CSV File from your computer</label>
+                <input type="file" id="client-csv-file" class="form-control" accept=".csv" onchange="previewClientCsv(event)">
+            </div>
+            <div id="client-preview-area" style="display: none; margin-top: 1rem;">
+                <div class="alert alert-info" id="client-preview-msg"></div>
+                <div class="table-responsive" style="max-height: 200px;">
+                    <table class="table" id="client-preview-table"></table>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('upload-csv-modal')">Close</button>
+            <button class="btn btn-primary" onclick="addClientDataset()">Import into Workspace</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mock in-memory data for GitHub Pages showcase
+const sampleSalesData = [
+    { date: "2026-01-05", region: "North America", product: "Enterprise Cloud", qty: 5, price: 1200, rev: 6000, channel: "Direct Sales" },
+    { date: "2026-01-08", region: "Europe", product: "Pro Analytics", qty: 12, price: 350, rev: 4200, channel: "Partner" },
+    { date: "2026-01-12", region: "Asia Pacific", product: "Team Starter", qty: 25, price: 99, rev: 2475, channel: "Online" },
+    { date: "2026-01-15", region: "North America", product: "Pro Analytics", qty: 8, price: 350, rev: 2800, channel: "Online" },
+    { date: "2026-01-19", region: "Latin America", product: "Enterprise Cloud", qty: 3, price: 1200, rev: 3600, channel: "Direct Sales" },
+    { date: "2026-01-22", region: "Europe", product: "Team Starter", qty: 40, price: 99, rev: 3960, channel: "Online" },
+    { date: "2026-01-28", region: "North America", product: "Enterprise Cloud", qty: 10, price: 1200, rev: 12000, channel: "Direct Sales" },
+    { date: "2026-02-02", region: "Europe", product: "Pro Analytics", qty: 15, price: 350, rev: 5250, channel: "Direct Sales" },
+    { date: "2026-02-06", region: "Asia Pacific", product: "Pro Analytics", qty: 9, price: 350, rev: 3150, channel: "Partner" },
+    { date: "2026-02-10", region: "North America", product: "Team Starter", qty: 30, price: 99, rev: 2970, channel: "Online" },
+    { date: "2026-02-14", region: "Europe", product: "Enterprise Cloud", qty: 6, price: 1200, rev: 7200, channel: "Direct Sales" },
+    { date: "2026-02-18", region: "Latin America", product: "Pro Analytics", qty: 7, price: 350, rev: 2450, channel: "Partner" },
+    { date: "2026-02-23", region: "North America", product: "Enterprise Cloud", qty: 8, price: 1200, rev: 9600, channel: "Direct Sales" },
+    { date: "2026-02-27", region: "Asia Pacific", product: "Enterprise Cloud", qty: 4, price: 1200, rev: 4800, channel: "Direct Sales" },
+    { date: "2026-03-03", region: "Europe", product: "Team Starter", qty: 50, price: 99, rev: 4950, channel: "Online" },
+    { date: "2026-03-07", region: "North America", product: "Pro Analytics", qty: 14, price: 350, rev: 4900, channel: "Online" },
+    { date: "2026-03-12", region: "Latin America", product: "Team Starter", qty: 20, price: 99, rev: 1980, channel: "Partner" },
+    { date: "2026-03-16", region: "Asia Pacific", product: "Pro Analytics", qty: 11, price: 350, rev: 3850, channel: "Online" },
+    { date: "2026-03-20", region: "Europe", product: "Enterprise Cloud", qty: 7, price: 1200, rev: 8400, channel: "Direct Sales" },
+    { date: "2026-03-25", region: "North America", product: "Enterprise Cloud", qty: 12, price: 1200, rev: 14400, channel: "Direct Sales" },
+    { date: "2026-03-29", region: "Europe", product: "Pro Analytics", qty: 10, price: 350, rev: 3500, channel: "Partner" }
+];
+
+let chartInstances = {};
+
+function loginDemo() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-shell').style.display = 'flex';
+    renderExplorerTable(sampleSalesData);
+    initDashboardCharts();
+}
+
+function logoutDemo() {
+    document.getElementById('app-shell').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+}
+
+function switchTab(tabId, el) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.app-sidebar-nav .nav-item').forEach(n => n.classList.remove('active'));
+
+    const targetTab = document.getElementById(`tab-${tabId}`);
+    if (targetTab) targetTab.classList.add('active');
+    if (el) el.classList.add('active');
+
+    if (tabId === 'dashboards') {
+        setTimeout(initDashboardCharts, 100);
+    }
+}
+
+function renderExplorerTable(data) {
+    const tbody = document.getElementById('explorer-tbody');
+    tbody.innerHTML = '';
+    data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${row.date}</td>
+            <td><strong>${row.region}</strong></td>
+            <td>${row.product}</td>
+            <td>${row.qty}</td>
+            <td>$${row.price.toFixed(2)}</td>
+            <td style="font-weight:600;">$${row.rev.toLocaleString()}</td>
+            <td><span class="badge badge-secondary">${row.channel}</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function filterExplorerTable() {
+    const search = document.getElementById('explorer-search').value.toLowerCase();
+    const region = document.getElementById('explorer-region-filter').value;
+
+    const filtered = sampleSalesData.filter(item => {
+        const matchRegion = !region || item.region === region;
+        const matchSearch = !search || 
+            item.region.toLowerCase().includes(search) || 
+            item.product.toLowerCase().includes(search) || 
+            item.channel.toLowerCase().includes(search);
+        return matchRegion && matchSearch;
+    });
+
+    renderExplorerTable(filtered);
+}
+
+function initDashboardCharts() {
+    const region = document.getElementById('dashboard-region-filter').value;
+    const filtered = (region === 'All') 
+        ? sampleSalesData 
+        : sampleSalesData.filter(d => d.region === region);
+
+    // Calculate totals
+    const totalRev = filtered.reduce((acc, d) => acc + d.rev, 0);
+    const totalQty = filtered.reduce((acc, d) => acc + d.qty, 0);
+    const aov = filtered.length > 0 ? Math.round(totalRev / filtered.length) : 0;
+
+    document.getElementById('kpi-total-revenue').textContent = `$${totalRev.toLocaleString()}`;
+    document.getElementById('kpi-total-units').textContent = totalQty.toLocaleString();
+    document.getElementById('kpi-aov').textContent = `$${aov.toLocaleString()}`;
+
+    // Aggregations for Region Bar Chart
+    const regionAgg = {};
+    filtered.forEach(d => {
+        regionAgg[d.region] = (regionAgg[d.region] || 0) + d.rev;
+    });
+
+    // Aggregations for Product Doughnut Chart
+    const prodAgg = {};
+    filtered.forEach(d => {
+        prodAgg[d.product] = (prodAgg[d.product] || 0) + d.rev;
+    });
+
+    // Aggregations for Monthly Line Trend
+    const monthAgg = { '2026-01': 0, '2026-02': 0, '2026-03': 0 };
+    filtered.forEach(d => {
+        const m = d.date.substring(0, 7);
+        if (monthAgg[m] !== undefined) monthAgg[m] += d.rev;
+    });
+
+    // Render Bar Chart
+    renderChart('chart-bar-region', 'bar', Object.keys(regionAgg), [{
+        label: 'Revenue ($)',
+        data: Object.values(regionAgg),
+        backgroundColor: '#4f46e5'
+    }]);
+
+    // Render Doughnut Chart
+    renderChart('chart-doughnut-product', 'doughnut', Object.keys(prodAgg), [{
+        data: Object.values(prodAgg),
+        backgroundColor: ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b']
+    }]);
+
+    // Render Line Trend Chart
+    renderChart('chart-line-trend', 'line', ['Jan 2026', 'Feb 2026', 'Mar 2026'], [{
+        label: 'Monthly Revenue ($)',
+        data: Object.values(monthAgg),
+        borderColor: '#4f46e5',
+        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+        fill: true,
+        tension: 0.3
+    }]);
+}
+
+function updateDashboardCharts() {
+    const region = document.getElementById('dashboard-region-filter').value;
+    const badge = document.getElementById('active-filter-badge');
+    badge.style.display = (region === 'All') ? 'none' : 'inline-block';
+    badge.textContent = `Region: ${region}`;
+    initDashboardCharts();
+}
+
+function renderChart(id, type, labels, datasets) {
+    if (chartInstances[id]) {
+        chartInstances[id].destroy();
+    }
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+
+    chartInstances[id] = new Chart(ctx, {
+        type: type,
+        data: { labels: labels, datasets: datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: type === 'doughnut' ? 'bottom' : 'top' }
+            }
+        }
+    });
+}
+
+function exportDataToCsv() {
+    const headers = ["Order Date", "Region", "Product", "Quantity", "Unit Price", "Revenue", "Sales Channel"];
+    let csv = "\uFEFF" + headers.join(",") + "\n";
+
+    sampleSalesData.forEach(row => {
+        // Safe CSV cell with formula injection guard
+        const safeRegion = (['=', '+', '-', '@'].includes(row.region[0])) ? `'${row.region}` : row.region;
+        const line = [row.date, `"${safeRegion}"`, `"${row.product}"`, row.qty, row.price, row.rev, `"${row.channel}"`].join(",");
+        csv += line + "\n";
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "insightboard-q1-sales-export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function previewClientCsv(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        const lines = evt.target.result.split(/\r\n|\n/).filter(l => l.trim() !== '');
+        if (lines.length === 0) return;
+
+        const table = document.getElementById('client-preview-table');
+        table.innerHTML = '';
+        const headers = lines[0].split(',');
+        let thead = '<tr>';
+        headers.forEach(h => thead += `<th>${h.trim()}</th>`);
+        thead += '</tr>';
+        table.innerHTML = `<thead>${thead}</thead>`;
+
+        let tbody = '';
+        lines.slice(1, 5).forEach(l => {
+            const cells = l.split(',');
+            tbody += '<tr>';
+            cells.forEach(c => tbody += `<td>${c.trim()}</td>`);
+            tbody += '</tr>';
+        });
+        table.innerHTML += `<tbody>${tbody}</tbody>`;
+
+        document.getElementById('client-preview-msg').textContent = `Parsed ${lines.length - 1} rows and ${headers.length} columns from ${file.name}`;
+        document.getElementById('client-preview-area').style.display = 'block';
+    };
+    reader.readAsText(file);
+}
+
+function addClientDataset() {
+    alert("CSV parsed successfully! The dataset has been added to your demo workspace.");
+    closeModal('upload-csv-modal');
+    document.getElementById('stat-datasets').textContent = "4";
+}
+
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+</script>
+</body>
+</html>

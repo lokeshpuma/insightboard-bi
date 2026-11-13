@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="ibGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="barGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded squircle -->
+  <rect width="64" height="64" rx="16" fill="url(#ibGrad)"/>
+  <!-- Chart bars -->
+  <rect x="12" y="34" width="8" height="18" rx="3" fill="#ffffff" fill-opacity="0.8"/>
+  <rect x="24" y="24" width="8" height="28" rx="3" fill="#ffffff" fill-opacity="0.9"/>
+  <rect x="36" y="16" width="8" height="36" rx="3" fill="url(#barGrad)"/>
+  <rect x="48" y="28" width="8" height="24" rx="3" fill="#ffffff" fill-opacity="0.8"/>
+  <!-- Growth trend dot -->
+  <circle cx="40" cy="16" r="3.5" fill="#38bdf8"/>
+</svg>

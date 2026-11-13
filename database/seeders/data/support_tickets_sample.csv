@@ -1,0 +1,16 @@
+created_date,category,priority,status,resolution_hours
+2026-01-02,Billing,High,Resolved,4.5
+2026-01-03,Authentication,Urgent,Resolved,1.2
+2026-01-04,Integration,Medium,Resolved,12.0
+2026-01-05,Feature Request,Low,Open,
+2026-01-06,Billing,Medium,Resolved,6.8
+2026-01-07,Performance,High,Resolved,8.5
+2026-01-08,Authentication,Urgent,Resolved,2.0
+2026-01-09,Integration,High,Resolved,14.2
+2026-01-10,Feature Request,Low,Open,
+2026-01-11,Billing,Low,Resolved,3.0
+2026-01-12,Performance,Medium,Resolved,7.4
+2026-01-13,Integration,High,Pending,
+2026-01-14,Authentication,Medium,Resolved,3.5
+2026-01-15,Billing,High,Resolved,5.0
+
