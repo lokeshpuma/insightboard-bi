@@ -21,6 +21,7 @@ class ChartQueryEngine
         'avg' => 'AVG(CAST(%s AS DECIMAL(18,4)))',
         'min' => 'MIN(CAST(%s AS DECIMAL(18,4)))',
         'max' => 'MAX(CAST(%s AS DECIMAL(18,4)))',
+        'median' => 'MEDIAN',
     ];
 
     /**
@@ -28,6 +29,11 @@ class ChartQueryEngine
      */
     public function query(Dataset $dataset, array $config, array $activeFilters = []): array
     {
+        // Require dataset to be successfully processed before analytical querying
+        if ($dataset->status !== 'ready') {
+            throw new Exception("Dataset '{$dataset->name}' is not ready for analysis (current status: {$dataset->status}).");
+        }
+
         $columns = $dataset->columns->keyBy('field_key');
         $chartType = $config['chart_type'] ?? 'bar';
         $aggregation = strtolower($config['aggregation'] ?? 'count');
@@ -53,15 +59,22 @@ class ChartQueryEngine
 
         // Handle KPI card: Single aggregated scalar value
         if ($chartType === 'kpi') {
-            $expr = $this->buildAggregationSql($aggregation, $yFieldKey, $columns);
-            $scalar = $query->selectRaw("{$expr} as metric_value")->value('metric_value');
+            if ($aggregation === 'median') {
+                $scalar = $this->calculateMedianScalar($query, $yFieldKey, $columns);
+            } else {
+                $expr = $this->buildAggregationSql($aggregation, $yFieldKey, $columns);
+                $scalar = $query->selectRaw("{$expr} as metric_value")->value('metric_value');
+            }
 
+            $roundedVal = $scalar !== null ? round((float)$scalar, 2) : 0;
             return [
                 'chart_type' => 'kpi',
-                'value' => $scalar !== null ? round((float)$scalar, 2) : 0,
+                'value' => $roundedVal,
+                'metric_value' => $roundedVal,
+                'formatted_value' => number_format($roundedVal, 2),
                 'labels' => ['Total'],
                 'series' => [
-                    ['name' => $config['title'] ?? 'Metric', 'data' => [$scalar !== null ? round((float)$scalar, 2) : 0]]
+                    ['name' => $config['title'] ?? 'Metric', 'data' => [$roundedVal]]
                 ],
                 'meta' => [
                     'aggregation' => $aggregation,
@@ -74,13 +87,17 @@ class ChartQueryEngine
         // Validate dimension field (X-axis)
         $xCol = $columns->get($xFieldKey);
         if (!$xCol && $chartType !== 'kpi') {
-            // Pick first dimension column if available
             $xCol = $columns->firstWhere('semantic_role', 'dimension') ?? $columns->first();
             if ($xCol) {
                 $xFieldKey = $xCol->field_key;
             } else {
                 return $this->emptyChartResult($chartType, "No dimension field available.");
             }
+        }
+
+        // Handle grouped median aggregation in PHP for exact mathematical calculation
+        if ($aggregation === 'median') {
+            return $this->computeGroupedMedian($query, $xFieldKey, $yFieldKey, $columns, $limit, $dateGranularity, $chartType, $config, $warnings);
         }
 
         // Build Dimension Expression (handle Date Granularity if column is date)
@@ -92,15 +109,14 @@ class ChartQueryEngine
                 'week' => '%Y-W%v',
                 default => '%Y-%m-%d',
             };
-            $dimSql = "DATE_FORMAT(STR_TO_DATE({$dimSql}, '%Y-%m-%d'), '{$format}')";
+            $dimSql = "COALESCE(DATE_FORMAT(STR_TO_DATE({$dimSql}, '%Y-%m-%d'), '{$format}'), {$dimSql})";
         }
 
         // Build Measure Expression
         $aggSql = $this->buildAggregationSql($aggregation, $yFieldKey, $columns);
 
-        // Query execution
+        // Query execution for multi-series charts
         if ($seriesFieldKey && $columns->has($seriesFieldKey)) {
-            // Grouped multi-series chart
             $seriesSql = "JSON_UNQUOTE(JSON_EXTRACT(row_data, '$.{$seriesFieldKey}'))";
             $results = $query
                 ->selectRaw("{$dimSql} as dim_val, {$seriesSql} as series_val, {$aggSql} as metric_val")
@@ -111,7 +127,6 @@ class ChartQueryEngine
                 ->limit($limit * 5)
                 ->get();
 
-            // Transform into Chart.js series format
             $uniqueLabels = $results->pluck('dim_val')->unique()->values()->all();
             $uniqueSeries = $results->pluck('series_val')->unique()->values()->all();
 
@@ -174,6 +189,89 @@ class ChartQueryEngine
                 'aggregation' => $aggregation,
                 'dimension' => $xCol->display_name,
                 'measure' => $columns->get($yFieldKey)?->display_name ?? 'Count',
+            ],
+            'warnings' => $warnings,
+        ];
+    }
+
+    protected function calculateMedianScalar($query, ?string $yFieldKey, $columns): float
+    {
+        if (!$yFieldKey || !$columns->has($yFieldKey)) {
+            return 0.0;
+        }
+
+        $jsonExtract = "JSON_UNQUOTE(JSON_EXTRACT(row_data, '$.{$yFieldKey}'))";
+        $values = (clone $query)
+            ->whereNotNull(DB::raw($jsonExtract))
+            ->selectRaw("CAST({$jsonExtract} AS DECIMAL(18,4)) as val")
+            ->orderBy('val', 'asc')
+            ->pluck('val')
+            ->filter(fn($v) => is_numeric($v))
+            ->map(fn($v) => (float)$v)
+            ->values()
+            ->all();
+
+        $count = count($values);
+        if ($count === 0) return 0.0;
+        $mid = intval($count / 2);
+        return ($count % 2 === 1) ? $values[$mid] : round(($values[$mid - 1] + $values[$mid]) / 2.0, 4);
+    }
+
+    protected function computeGroupedMedian($query, string $xFieldKey, ?string $yFieldKey, $columns, int $limit, string $dateGranularity, string $chartType, array $config, array $warnings): array
+    {
+        $xCol = $columns->get($xFieldKey);
+        $dimSql = "JSON_UNQUOTE(JSON_EXTRACT(row_data, '$.{$xFieldKey}'))";
+        if ($xCol && $xCol->isDate()) {
+            $format = match ($dateGranularity) {
+                'year' => '%Y',
+                'month' => '%Y-%m',
+                'week' => '%Y-W%v',
+                default => '%Y-%m-%d',
+            };
+            $dimSql = "COALESCE(DATE_FORMAT(STR_TO_DATE({$dimSql}, '%Y-%m-%d'), '{$format}'), {$dimSql})";
+        }
+
+        $jsonExtract = "JSON_UNQUOTE(JSON_EXTRACT(row_data, '$.{$yFieldKey}'))";
+        $rows = (clone $query)
+            ->selectRaw("{$dimSql} as dim_val, CAST({$jsonExtract} AS DECIMAL(18,4)) as metric_val")
+            ->whereRaw("{$dimSql} IS NOT NULL")
+            ->whereNotNull(DB::raw($jsonExtract))
+            ->orderBy('dim_val')
+            ->get();
+
+        $groups = [];
+        foreach ($rows as $row) {
+            $dim = (string) ($row->dim_val ?? 'N/A');
+            $groups[$dim][] = (float) $row->metric_val;
+        }
+
+        $labels = [];
+        $dataPoints = [];
+        $countGroup = 0;
+        foreach ($groups as $dim => $nums) {
+            if ($countGroup++ >= $limit) break;
+            sort($nums, SORT_NUMERIC);
+            $n = count($nums);
+            $mid = intval($n / 2);
+            $med = ($n % 2 === 1) ? $nums[$mid] : ($nums[$mid - 1] + $nums[$mid]) / 2.0;
+
+            $labels[] = $dim;
+            $dataPoints[] = round($med, 2);
+        }
+
+        return [
+            'chart_type' => $chartType,
+            'labels' => $labels,
+            'series' => [
+                [
+                    'name' => $config['title'] ?? ($columns->get($yFieldKey)?->display_name ?? 'Median'),
+                    'data' => $dataPoints,
+                ]
+            ],
+            'meta' => [
+                'aggregation' => 'median',
+                'dimension' => $xCol->display_name,
+                'measure' => $columns->get($yFieldKey)?->display_name ?? 'Median',
             ],
             'warnings' => $warnings,
         ];
@@ -243,4 +341,3 @@ class ChartQueryEngine
         ];
     }
 }
-

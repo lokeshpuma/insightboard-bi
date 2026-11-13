@@ -157,7 +157,8 @@ class DatasetController extends Controller
         // Store privately
         Storage::disk('local')->putFileAs('datasets', $uploadedFile, "{$datasetId}.csv");
 
-        $dataset = DB::transaction(function () use ($workspace, $datasetId, $request, $originalFilename, $storagePath, $fileSize, $fileHash, $delimiter) {
+        $jobId = (string) Str::uuid();
+        $dataset = DB::transaction(function () use ($workspace, $datasetId, $request, $originalFilename, $storagePath, $fileSize, $fileHash, $delimiter, $jobId) {
             $ds = Dataset::create([
                 'id' => $datasetId,
                 'workspace_id' => $workspace->id,
@@ -172,8 +173,8 @@ class DatasetController extends Controller
                 'status' => 'uploaded',
             ]);
 
-            $job = ImportJob::create([
-                'id' => (string) Str::uuid(),
+            ImportJob::create([
+                'id' => $jobId,
                 'dataset_id' => $ds->id,
                 'workspace_id' => $workspace->id,
                 'created_by' => Auth::id(),
@@ -186,11 +187,11 @@ class DatasetController extends Controller
                 'size_bytes' => $fileSize,
             ]);
 
-            // Dispatch background queue job
-            ImportDatasetJob::dispatch($ds->id, $job->id);
-
             return $ds;
         });
+
+        // Dispatch background queue job after transaction commits
+        ImportDatasetJob::dispatch($dataset->id, $jobId)->afterCommit();
 
         return redirect()->route('datasets.show', $dataset)
             ->with('success', "Dataset '{$dataset->name}' uploaded and queued for processing.");
@@ -208,6 +209,11 @@ class DatasetController extends Controller
     public function explorer(Dataset $dataset, Request $request)
     {
         Gate::authorize('view', $dataset);
+
+        if ($dataset->status !== 'ready') {
+            return redirect()->route('datasets.show', $dataset)
+                ->with('error', "Dataset '{$dataset->name}' is {$dataset->status} and cannot be explored until processing is completed.");
+        }
 
         $columns = $dataset->columns;
         $columnKeys = $columns->pluck('field_key')->all();

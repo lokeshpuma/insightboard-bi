@@ -30,7 +30,9 @@ class ImportDatasetJob implements ShouldQueue
     public function __construct(
         public string $datasetId,
         public string $importJobId
-    ) {}
+    ) {
+        $this->afterCommit = true;
+    }
 
     public function handle(AnalyticsServiceClient $analyticsClient): void
     {
@@ -204,7 +206,25 @@ class ImportDatasetJob implements ShouldQueue
 
     protected function failJob(Dataset $dataset, ImportJob $importJob, string $safeMessage): void
     {
-        $dataset->update(['status' => 'failed']);
+        // Purge any partially imported records to prevent corrupted or dirty state
+        try {
+            DB::transaction(function () use ($dataset) {
+                DatasetRow::where('dataset_id', $dataset->id)->delete();
+                DatasetColumn::where('dataset_id', $dataset->id)->delete();
+            });
+        } catch (\Throwable $e) {
+            Log::warning("Failed to clean up partial records during job failure", [
+                'dataset_id' => $dataset->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $dataset->update([
+            'status' => 'failed',
+            'row_count' => 0,
+            'column_count' => 0,
+        ]);
+
         $importJob->update([
             'status' => 'failed',
             'error_message' => $safeMessage,

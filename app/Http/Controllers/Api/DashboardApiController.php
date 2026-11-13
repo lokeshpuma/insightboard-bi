@@ -123,6 +123,35 @@ class DashboardApiController extends ApiController
         return $this->success(null, 'Widget deleted successfully');
     }
 
+    public function reorderWidgets(Request $request, Dashboard $dashboard): JsonResponse
+    {
+        Gate::authorize('update', $dashboard);
+
+        $validated = $request->validate([
+            'widgets' => ['required', 'array'],
+            'widgets.*.id' => ['required', 'uuid'],
+            'widgets.*.sort_order' => ['nullable', 'integer'],
+            'widgets.*.width' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'widgets.*.position_x' => ['nullable', 'integer'],
+            'widgets.*.position_y' => ['nullable', 'integer'],
+        ]);
+
+        DB::transaction(function () use ($dashboard, $validated) {
+            foreach ($validated['widgets'] as $idx => $item) {
+                DashboardWidget::where('dashboard_id', $dashboard->id)
+                    ->where('id', $item['id'])
+                    ->update([
+                        'sort_order' => $item['sort_order'] ?? $idx,
+                        'width' => $item['width'] ?? 6,
+                        'position_x' => $item['position_x'] ?? 0,
+                        'position_y' => $item['position_y'] ?? 0,
+                    ]);
+            }
+        });
+
+        return $this->success(null, 'Dashboard widget layout updated successfully');
+    }
+
     public function widgetData(Request $request, DashboardWidget $widget, ChartQueryEngine $queryEngine): JsonResponse
     {
         Gate::authorize('view', $widget->dashboard);

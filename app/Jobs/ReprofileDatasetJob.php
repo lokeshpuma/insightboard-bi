@@ -20,7 +20,10 @@ class ReprofileDatasetJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public string $datasetId) {}
+    public function __construct(public string $datasetId)
+    {
+        $this->afterCommit = true;
+    }
 
     public function handle(AnalyticsServiceClient $analyticsClient): void
     {
@@ -42,20 +45,37 @@ class ReprofileDatasetJob implements ShouldQueue
                 $profileData = $analysisResult['data'];
 
                 DB::transaction(function () use ($dataset, $profileData) {
-                    foreach ($profileData['columns'] as $col) {
-                        DatasetColumn::where('dataset_id', $dataset->id)
-                            ->where('field_key', $col['key'])
-                            ->update([
+                    $activeKeys = [];
+                    foreach ($profileData['columns'] as $idx => $col) {
+                        $activeKeys[] = $col['key'];
+
+                        DatasetColumn::updateOrCreate(
+                            [
+                                'dataset_id' => $dataset->id,
+                                'field_key' => $col['key'],
+                            ],
+                            [
+                                'original_name' => $col['label'],
+                                'display_name' => $col['label'],
                                 'inferred_type' => $col['inferred_type'],
                                 'semantic_role' => $col['semantic_role'],
+                                'ordinal_position' => $idx,
                                 'null_count' => $col['null_count'] ?? 0,
                                 'distinct_count' => $col['distinct_count'] ?? null,
                                 'statistics' => $col['statistics'] ?? null,
                                 'sample_values' => $col['sample_values'] ?? null,
-                            ]);
+                            ]
+                        );
                     }
 
+                    // Remove orphaned columns that no longer exist
+                    DatasetColumn::where('dataset_id', $dataset->id)
+                        ->whereNotIn('field_key', $activeKeys)
+                        ->delete();
+
                     $dataset->update([
+                        'row_count' => $profileData['row_count'] ?? $dataset->row_count,
+                        'column_count' => $profileData['column_count'] ?? count($activeKeys),
                         'analysis_summary' => [
                             'quality' => $profileData['quality'] ?? [],
                             'correlations' => $profileData['correlations'] ?? [],
@@ -78,4 +98,3 @@ class ReprofileDatasetJob implements ShouldQueue
         }
     }
 }
-

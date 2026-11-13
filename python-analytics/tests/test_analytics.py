@@ -5,6 +5,8 @@ from app.main import app
 from app.core.config import settings
 
 client = TestClient(app)
+if not settings.service_token:
+    settings.service_token = "test-analytics-secret-key"
 AUTH_HEADER = {"Authorization": f"Bearer {settings.service_token}"}
 
 def test_health_endpoint():

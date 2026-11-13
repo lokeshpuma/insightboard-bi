@@ -72,18 +72,20 @@ class DatasetApiController extends ApiController
                 'status' => 'uploaded',
             ]);
 
+            $jobId = (string) Str::uuid();
             $job = ImportJob::create([
-                'id' => (string) Str::uuid(),
+                'id' => $jobId,
                 'dataset_id' => $dataset->id,
                 'workspace_id' => $workspace->id,
                 'created_by' => Auth::id(),
                 'status' => 'queued',
             ]);
 
-            ImportDatasetJob::dispatch($dataset->id, $job->id);
-
             return ['dataset' => $dataset, 'import_job' => $job];
         });
+
+        // Dispatch background queue job after transaction commits
+        ImportDatasetJob::dispatch($result['dataset']->id, $result['import_job']->id)->afterCommit();
 
         return $this->success($result, 'Dataset uploaded and import job queued', 202);
     }
@@ -104,6 +106,9 @@ class DatasetApiController extends ApiController
     public function preview(Dataset $dataset): JsonResponse
     {
         Gate::authorize('view', $dataset);
+        if ($dataset->status !== 'ready') {
+            return $this->error("Dataset is not ready for preview (status: {$dataset->status})", 422);
+        }
         $previewRows = $dataset->rows()->orderBy('row_number', 'asc')->limit(10)->get();
         return $this->success([
             'columns' => $dataset->columns,
@@ -114,6 +119,9 @@ class DatasetApiController extends ApiController
     public function rows(Dataset $dataset, Request $request): JsonResponse
     {
         Gate::authorize('view', $dataset);
+        if ($dataset->status !== 'ready') {
+            return $this->error("Dataset is not ready for querying (status: {$dataset->status})", 422);
+        }
 
         $query = $dataset->rows();
         $columnKeys = $dataset->columns->pluck('field_key')->all();

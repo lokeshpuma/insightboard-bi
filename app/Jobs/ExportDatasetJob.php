@@ -22,7 +22,10 @@ class ExportDatasetJob implements ShouldQueue
 
     public int $timeout = 600;
 
-    public function __construct(public string $exportJobId) {}
+    public function __construct(public string $exportJobId)
+    {
+        $this->afterCommit = true;
+    }
 
     public function handle(): void
     {
@@ -62,8 +65,54 @@ class ExportDatasetJob implements ShouldQueue
             $headers = $columns->pluck('display_name')->all();
             $writer->insertOne($headers);
 
+            $query = $dataset->rows()->orderBy('row_number', 'asc');
+
+            // Apply report filters if exporting a report
+            if ($exportJob->resource_type === 'report' && isset($report)) {
+                $filters = $report->definition['filters'] ?? [];
+                $columnsKeyed = $columns->keyBy('field_key');
+
+                foreach ($filters as $filter) {
+                    $field = $filter['field'] ?? null;
+                    $op = $filter['operator'] ?? 'equals';
+                    $val = $filter['value'] ?? null;
+
+                    if (!$field || !$columnsKeyed->has($field) || $val === null || $val === '') {
+                        continue;
+                    }
+
+                    $jsonExtract = "JSON_UNQUOTE(JSON_EXTRACT(row_data, '$.{$field}'))";
+                    $colMeta = $columnsKeyed->get($field);
+
+                    if ($colMeta->isNumeric()) {
+                        $numExpr = "CAST({$jsonExtract} AS DECIMAL(18,4))";
+                        if ($op === 'equals') {
+                            $query->whereRaw("{$numExpr} = ?", [(float)$val]);
+                        } elseif ($op === 'gt') {
+                            $query->whereRaw("{$numExpr} > ?", [(float)$val]);
+                        } elseif ($op === 'lt') {
+                            $query->whereRaw("{$numExpr} < ?", [(float)$val]);
+                        } elseif ($op === 'between' && is_array($val) && count($val) === 2) {
+                            $query->whereRaw("{$numExpr} BETWEEN ? AND ?", [(float)$val[0], (float)$val[1]]);
+                        }
+                    } elseif ($colMeta->isDate()) {
+                        if ($op === 'date_range' && is_array($val) && count($val) === 2) {
+                            $query->whereRaw("{$jsonExtract} BETWEEN ? AND ?", [$val[0], $val[1]]);
+                        } elseif ($op === 'equals') {
+                            $query->whereRaw("{$jsonExtract} = ?", [$val]);
+                        }
+                    } else {
+                        if ($op === 'equals') {
+                            $query->whereRaw("{$jsonExtract} = ?", [$val]);
+                        } elseif ($op === 'contains') {
+                            $query->whereRaw("{$jsonExtract} LIKE ?", ["%{$val}%"]);
+                        }
+                    }
+                }
+            }
+
             // Stream rows in chunks
-            $dataset->rows()->orderBy('row_number', 'asc')->chunk(1000, function ($rows) use ($writer, $columns) {
+            $query->chunk(1000, function ($rows) use ($writer, $columns) {
                 $records = [];
                 foreach ($rows as $row) {
                     $record = [];

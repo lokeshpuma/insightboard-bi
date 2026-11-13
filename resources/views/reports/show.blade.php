@@ -20,12 +20,13 @@
             <input type="hidden" name="resource_id" value="{{ $report->id }}">
             <button type="submit" class="btn btn-primary">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                Export to CSV
+                Export CSV
             </button>
         </form>
 
         <button type="button" class="btn btn-outline" onclick="window.print()">
-            Print Report
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
+            Print / PDF
         </button>
     </div>
 </div>
@@ -38,6 +39,43 @@
     </div>
 @endif
 
+@if($summaryStats)
+    <div class="grid grid-cols-4" style="margin-bottom: 1.5rem;">
+        <div class="card">
+            <div class="card-body" style="padding: 1.25rem;">
+                <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Aggregate</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-top: 0.25rem;">
+                    {{ number_format($summaryStats['sum'], 2) }}
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body" style="padding: 1.25rem;">
+                <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Average Value</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #4338ca; margin-top: 0.25rem;">
+                    {{ number_format($summaryStats['avg'], 2) }}
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body" style="padding: 1.25rem;">
+                <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Maximum Value</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: #059669; margin-top: 0.25rem;">
+                    {{ number_format($summaryStats['max'], 2) }}
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body" style="padding: 1.25rem;">
+                <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Categories Count</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-top: 0.25rem;">
+                    {{ number_format($summaryStats['count']) }}
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+
 @if($chartData && !empty($chartData['labels']))
     <div class="grid grid-cols-12" style="margin-bottom: 2rem;">
         <!-- Chart Canvas -->
@@ -46,7 +84,7 @@
                 <div class="card-header">
                     <h2 class="card-title">Visualization</h2>
                 </div>
-                <div class="card-body" style="height: 350px;">
+                <div class="card-body" style="height: 380px;">
                     <canvas id="report-chart"></canvas>
                 </div>
             </div>
@@ -58,7 +96,7 @@
                 <div class="card-header">
                     <h2 class="card-title">Data Summary</h2>
                 </div>
-                <div class="table-responsive" style="max-height: 350px;">
+                <div class="table-responsive" style="max-height: 380px;">
                     <table class="table">
                         <thead>
                             <tr>
@@ -86,7 +124,7 @@
         <div class="empty-state">
             <div class="empty-state-icon">📊</div>
             <h3 class="empty-state-title">No aggregated data available</h3>
-            <p class="empty-state-desc">The source dataset may be empty or processing. Check dataset status.</p>
+            <p class="empty-state-desc">The source dataset may be empty or still processing. Check dataset status.</p>
         </div>
     </div>
 @endif
@@ -102,4 +140,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 @endif
 @endpush
-

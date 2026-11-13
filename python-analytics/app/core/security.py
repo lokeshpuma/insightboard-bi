@@ -11,16 +11,22 @@ def verify_internal_token(
     bearer: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
     api_key: str | None = Security(header_scheme),
 ) -> bool:
+    if not settings.service_token:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server configuration error: ANALYTICS_SERVICE_TOKEN must be configured in environment",
+        )
+
     token = None
     if bearer and bearer.credentials:
         token = bearer.credentials
     elif api_key:
         token = api_key
 
-    if not token or not settings.service_token:
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized: Missing or invalid authentication token",
+            detail="Unauthorized: Missing authentication token",
         )
 
     # Constant time comparison to prevent timing attacks
@@ -31,4 +37,3 @@ def verify_internal_token(
         )
 
     return True
-

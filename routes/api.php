@@ -1,12 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\DashboardApiController;
 use App\Http\Controllers\Api\DatasetApiController;
 use App\Http\Controllers\Api\ReportApiController;
 use App\Http\Controllers\Api\WorkspaceApiController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->group(function () {
+Route::prefix('v1')->middleware('throttle:60,1')->group(function () {
     Route::get('/health', function () {
         return response()->json([
             'success' => true,
@@ -15,8 +16,15 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
+    // Public authentication token issue endpoint
+    Route::post('/tokens', [ApiTokenController::class, 'issue']);
+
     // Authenticated API routes
     Route::middleware('auth:sanctum')->group(function () {
+        // Token management
+        Route::get('/tokens', [ApiTokenController::class, 'index']);
+        Route::delete('/tokens', [ApiTokenController::class, 'revokeCurrent']);
+        Route::delete('/tokens/{id}', [ApiTokenController::class, 'revoke']);
         // Workspaces
         Route::get('/workspaces', [WorkspaceApiController::class, 'index']);
         Route::post('/workspaces', [WorkspaceApiController::class, 'store']);
@@ -47,6 +55,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/dashboards/{dashboard}', [DashboardApiController::class, 'update']);
         Route::delete('/dashboards/{dashboard}', [DashboardApiController::class, 'destroy']);
         Route::post('/dashboards/{dashboard}/widgets', [DashboardApiController::class, 'addWidget']);
+        Route::post('/dashboards/{dashboard}/reorder', [DashboardApiController::class, 'reorderWidgets']);
         Route::patch('/dashboard-widgets/{widget}', [DashboardApiController::class, 'updateWidget']);
         Route::delete('/dashboard-widgets/{widget}', [DashboardApiController::class, 'deleteWidget']);
         Route::post('/dashboard-widgets/{widget}/data', [DashboardApiController::class, 'widgetData']);

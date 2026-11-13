@@ -150,5 +150,42 @@
 - [x] API documentation (`docs/API.md`) and Security documentation (`docs/SECURITY.md`).
 - [x] Complete `README.md` with step-by-step setup guide and architecture walkthrough.
 - [x] Run full test suites:
-  - [x] Laravel tests: **18 passed, 82 assertions, 0 failures**
+  - [x] Laravel tests: **24 passed, 126 assertions, 0 failures**
   - [x] Python tests: **7 passed, 0 failures**
+
+---
+
+## Phase 7: Essential Improvements & Hardening (improve.md)
+- [x] **Sanctum & API Tokens:**
+  - [x] Installed and configured `laravel/sanctum` with `HasApiTokens` on `User`.
+  - [x] Added `ApiTokenController` (`/api/v1/tokens` issue, list, revoke).
+  - [x] Added `ApiTokenTest` (100% pass).
+- [x] **Password Reset:**
+  - [x] Added password reset tokens handling via `password_reset_tokens` table.
+  - [x] Created `auth/reset-password.blade.php` view.
+  - [x] Added `sendResetLink`, `showResetPassword`, and `resetPassword` in `AuthController`.
+  - [x] Added `PasswordResetTest` verifying full lifecycle (100% pass).
+- [x] **Python Service Security:**
+  - [x] Removed hardcoded fallback secrets in `config.py` and `security.py`.
+  - [x] Strictly requires `ANALYTICS_SERVICE_TOKEN` via environment.
+- [x] **Database Transaction & Queue Safety:**
+  - [x] Ensured background jobs (`ImportDatasetJob`, `ExportDatasetJob`, `ReprofileDatasetJob`) execute with `$afterCommit = true`.
+  - [x] Dispatched jobs outside of transaction blocks.
+  - [x] Idempotent retry cleanup and partial record purging on job failures.
+- [x] **Schema Synchronization on Re-import:**
+  - [x] `ReprofileDatasetJob` synchronizes new/updated columns via `updateOrCreate` and purges orphaned columns.
+- [x] **Statistical Calculations & Fallback Profiler:**
+  - [x] True numeric sorting for median calculation (odd and even lengths).
+  - [x] Population standard deviation, Q1, Q3, and IQR outlier detection.
+  - [x] Added `StatisticalAccuracyTest` testing against mathematical ground truth.
+- [x] **Analytics Engine & Aggregations:**
+  - [x] Added exact `median` calculation in `ChartQueryEngine` for KPI cards and grouped charts.
+  - [x] Guaranteed `ready` status prerequisite before datasets can be analyzed or explored.
+- [x] **Dashboard Layouts & Reordering:**
+  - [x] Added `reorderWidgets` in `DashboardApiController` to save widget layout and sort orders.
+- [x] **Reporting Improvements:**
+  - [x] Filter-aware CSV exports (`ExportDatasetJob` applies report filters before streaming).
+  - [x] Added 4-card KPI summary banner and print stylesheet in `reports/show.blade.php`.
+  - [x] Added `FilteredExportTest` verifying filtered CSV export correctness.
+- [x] **API Rate Limiting:**
+  - [x] Added `throttle:60,1` on `api/v1` routes.

@@ -88,11 +88,25 @@ class ReportController extends Controller
         $dataset = Dataset::where('id', $datasetId)->where('workspace_id', $workspace->id)->first();
 
         $chartData = null;
+        $summaryStats = null;
         if ($dataset && $dataset->isReady()) {
             $chartData = $queryEngine->query($dataset, $report->definition);
+
+            if (!empty($chartData['series'][0]['data'])) {
+                $nums = array_filter($chartData['series'][0]['data'], fn($v) => is_numeric($v));
+                if (count($nums) > 0) {
+                    $summaryStats = [
+                        'count' => count($nums),
+                        'sum' => array_sum($nums),
+                        'avg' => round(array_sum($nums) / count($nums), 2),
+                        'min' => min($nums),
+                        'max' => max($nums),
+                    ];
+                }
+            }
         }
 
-        return view('reports.show', compact('report', 'workspace', 'dataset', 'chartData'));
+        return view('reports.show', compact('report', 'workspace', 'dataset', 'chartData', 'summaryStats'));
     }
 
     public function destroy(Report $report)

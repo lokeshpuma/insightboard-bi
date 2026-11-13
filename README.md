@@ -1,7 +1,7 @@
 # InsightBoard — Business Intelligence & Analytics Platform
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-6366f1?style=for-the-badge&logo=github)](https://lokeshpuma.github.io/insightboard-bi/)
-[![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-18%20Passed%20(82%20assertions)-brightgreen?style=for-the-badge&logo=php)](tests/)
+[![PHPUnit Tests](https://img.shields.io/badge/PHPUnit-24%20Passed%20(126%20assertions)-brightgreen?style=for-the-badge&logo=php)](tests/)
 [![Python Tests](https://img.shields.io/badge/pytest-7%20Passed-brightgreen?style=for-the-badge&logo=python)](python-analytics/tests/)
 [![Stack](https://img.shields.io/badge/Stack-Laravel%2013%20%7C%20MySQL%209.3%20%7C%20FastAPI%20%7C%20Chart.js-blue?style=for-the-badge)]()
 
@@ -422,13 +422,17 @@ InsightBoard includes automated tests for both the Laravel backend and the Pytho
 ```bash
 php artisan test
 ```
-**Test Summary (18 tests, 82 assertions):**
+**Test Summary (24 tests, 126 assertions):**
 - `Tests\Feature\AuthTest`: Login, logout, session security.
+- `Tests\Feature\PasswordResetTest`: Password reset token lifecycle, expiration & secure updates.
+- `Tests\Feature\ApiTokenTest`: Laravel Sanctum API token issuance, Bearer authentication & revocation.
 - `Tests\Feature\WorkspaceAccessTest`: Multi-tenant isolation and RBAC role boundaries.
 - `Tests\Feature\CsvImportTest`: Upload validation, delimiter detection, chunked ingestion.
-- `Tests\Feature\ChartQueryEngineTest`: Aggregations (`sum`, `avg`, `min`, `max`, `count`), temporal grouping.
-- `Tests\Feature\DashboardTest`: Dashboard creation, widget updates, deletion policies.
+- `Tests\Feature\StatisticalAccuracyTest`: Mathematical accuracy of mean, median, quartiles & IQR outlier detection.
+- `Tests\Feature\ChartQueryEngineTest`: Aggregations (`sum`, `avg`, `min`, `max`, `count`, `median`), temporal grouping.
+- `Tests\Feature\DashboardTest`: Dashboard creation, widget updates, layout reordering, deletion policies.
 - `Tests\Feature\ExportTest`: CSV streaming, spreadsheet formula injection neutralization.
+- `Tests\Feature\FilteredExportTest`: Filter-aware CSV exports matching report criteria.
 - `Tests\Feature\IntegrationE2ETest`: Full end-to-end pipeline verification.
 
 ### Run Python Analytics Tests (pytest)
